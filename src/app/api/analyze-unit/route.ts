@@ -1,0 +1,50 @@
+import { NextResponse } from "next/server";
+import { analyzeUnitWithGemini } from "@/lib/ai-analyzer";
+import { getUnitBySlug } from "@/lib/data-repository";
+import { isGeminiConfigured } from "@/lib/env";
+import type { Unit } from "@/types/unit";
+
+export const dynamic = "force-dynamic";
+
+interface AnalyzeRequestBody {
+  slug?: string;
+  unit?: Unit;
+  forceRefresh?: boolean;
+}
+
+export async function POST(request: Request) {
+  try {
+    const body = (await request.json()) as AnalyzeRequestBody;
+    let targetUnit: Unit | null = null;
+
+    if (body.slug) {
+      const { unit } = await getUnitBySlug(body.slug);
+      targetUnit = unit;
+    }
+
+    if (!targetUnit && body.unit && body.unit.name) {
+      targetUnit = body.unit;
+    }
+
+    if (!targetUnit) {
+      return NextResponse.json(
+        { error: "Персонаж не найден (передайте корректный slug или объект unit)." },
+        { status: 404 }
+      );
+    }
+
+    const analysis = await analyzeUnitWithGemini(targetUnit, {
+      forceRefresh: Boolean(body.forceRefresh),
+    });
+
+    return NextResponse.json({
+      unitSlug: targetUnit.slug,
+      geminiConfigured: isGeminiConfigured(),
+      analysis,
+    });
+  } catch (err) {
+    const message =
+      err instanceof Error ? err.message : "Ошибка при анализе персонажа";
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
+}

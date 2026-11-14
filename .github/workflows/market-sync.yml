@@ -1,0 +1,55 @@
+name: Hourly Market Price Sync
+
+on:
+  schedule:
+    # Запуск каждый час в 00 минут (UTC)
+    - cron: "0 * * * *"
+  workflow_dispatch:
+
+jobs:
+  sync-market:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Sync via deployed Next.js endpoint (if SYNC_ENDPOINT_URL is set)
+        if: ${{ secrets.SYNC_ENDPOINT_URL != '' }}
+        env:
+          SYNC_ENDPOINT_URL: ${{ secrets.SYNC_ENDPOINT_URL }}
+          SYNC_SECRET_TOKEN: ${{ secrets.SYNC_SECRET_TOKEN }}
+        run: |
+          if [ -n "$SYNC_SECRET_TOKEN" ]; then
+            curl -fsS -X POST "$SYNC_ENDPOINT_URL" \
+              -H "Authorization: Bearer $SYNC_SECRET_TOKEN" \
+              -H "Content-Type: application/json"
+          else
+            curl -fsS -X POST "$SYNC_ENDPOINT_URL" \
+              -H "Content-Type: application/json"
+          fi
+
+      - name: Sync directly from Google Sheets CSV to Supabase (if Supabase secrets are set)
+        if: ${{ secrets.SYNC_ENDPOINT_URL == '' && secrets.NEXT_PUBLIC_SUPABASE_URL != '' && secrets.SUPABASE_SERVICE_ROLE_KEY != '' }}
+        env:
+          GOOGLE_SHEET_ID: ${{ secrets.GOOGLE_SHEET_ID }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: node scripts/sync-market.mjs
+
+      - name: Verify Google Sheets CSV parser (dry-run when DB secrets are not set)
+        if: ${{ secrets.SYNC_ENDPOINT_URL == '' && (secrets.NEXT_PUBLIC_SUPABASE_URL == '' || secrets.SUPABASE_SERVICE_ROLE_KEY == '') }}
+        run: |
+          echo "::notice::Supabase/Endpoint secrets are not configured yet. Running CSV parser verification (--dry-run)."
+          node scripts/sync-market.mjs --dry-run
