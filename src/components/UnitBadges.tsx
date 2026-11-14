@@ -7,6 +7,7 @@ import {
   Activity,
   Minus,
   Sparkles,
+  Lock,
 } from "lucide-react";
 import { getTierMeta, getTrendMeta } from "@/lib/unit-formatting";
 import type { SubTier, Tier, TrendStatus } from "@/types/unit";
@@ -60,6 +61,36 @@ export function TrendBadge({ trend }: { trend: TrendStatus }) {
     >
       <Icon className="h-3 w-3 shrink-0" />
       <span>{meta.label}</span>
+    </span>
+  );
+}
+
+export function EstimatedValueBadge({
+  isUntradable = false,
+  compact = false,
+}: {
+  isUntradable?: boolean;
+  compact?: boolean;
+}) {
+  return (
+    <span
+      title={
+        isUntradable
+          ? "Персонаж ещё не передаётся в трейде — показана ориентировочная цена по аналогам"
+          : "Коллекционный ориентир договорной цены"
+      }
+      className="inline-flex items-center gap-1 rounded-lg border border-violet-400/40 bg-violet-500/15 px-2 py-0.5 text-[10px] font-bold tracking-wide text-violet-200 uppercase"
+    >
+      <Lock className="h-2.5 w-2.5 shrink-0 text-violet-300" />
+      <span>
+        {compact
+          ? isUntradable
+            ? "Прогноз"
+            : "Ориентир"
+          : isUntradable
+            ? "Прогноз · Без трейда"
+            : "Ориентир OC"}
+      </span>
     </span>
   );
 }

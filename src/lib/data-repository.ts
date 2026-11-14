@@ -1,4 +1,9 @@
 import {
+  enrichSheetUnitWithEstimate,
+  findDpsProfileBySlug,
+  toSyntheticUnitFromDpsProfile,
+} from "@/data/dpsTierList";
+import {
   computeMarketStats,
   fetchMarketSnapshotFromSheets,
 } from "@/lib/sheets-parser";
@@ -78,7 +83,11 @@ export async function getMarketSnapshot(options?: {
   }
 
   try {
-    const live = await fetchMarketSnapshotFromSheets();
+    const raw = await fetchMarketSnapshotFromSheets();
+    const live: MarketSnapshot = {
+      ...raw,
+      units: raw.units.map(enrichSheetUnitWithEstimate),
+    };
     memoryCache = {
       snapshot: live,
       expiresAt: now + CACHE_TTL_MS,
@@ -115,6 +124,13 @@ export async function getUnitBySlug(slug: string): Promise<{
   snapshot: MarketSnapshot;
 }> {
   const snapshot = await getMarketSnapshot();
-  const unit = snapshot.units.find((u) => u.slug === slug) ?? null;
-  return { unit, snapshot };
+  const sheetUnit = snapshot.units.find((u) => u.slug === slug) ?? null;
+  if (sheetUnit) {
+    return { unit: sheetUnit, snapshot };
+  }
+  const dpsProfile = findDpsProfileBySlug(slug);
+  if (dpsProfile) {
+    return { unit: toSyntheticUnitFromDpsProfile(dpsProfile), snapshot };
+  }
+  return { unit: null, snapshot };
 }

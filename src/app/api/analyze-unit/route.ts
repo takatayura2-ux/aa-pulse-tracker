@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import {
-  ALL_DPS_PROFILES,
+  findDpsProfileBySlug,
   findUnitDpsProfile,
   toSyntheticUnitFromDpsProfile,
 } from "@/data/dpsTierList";
@@ -26,11 +26,7 @@ export async function POST(request: Request) {
       const { unit } = await getUnitBySlug(body.slug);
       targetUnit = unit;
       if (!targetUnit) {
-        const dpsMatch = ALL_DPS_PROFILES.find(
-          (entry) =>
-            entry.unitSlug === body.slug ||
-            `dps-${entry.rankCode.toLowerCase()}` === body.slug
-        );
+        const dpsMatch = findDpsProfileBySlug(body.slug);
         if (dpsMatch) {
           targetUnit = toSyntheticUnitFromDpsProfile(dpsMatch);
         }

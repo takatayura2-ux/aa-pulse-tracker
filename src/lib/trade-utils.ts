@@ -44,6 +44,14 @@ export function evaluateTrade(
       "В сделке есть коллекционный юнит со статусом N/A (цена договорная и не учтена в сумме)."
     );
   }
+  if (
+    offerUnits.some((u) => u.isUntradable || u.isEstimatedValue) ||
+    requestUnits.some((u) => u.isUntradable || u.isEstimatedValue)
+  ) {
+    warnings.push(
+      "В сделке участвует непередаваемый персонаж с примерной прогнозной ценой (~Value до открытия трейда)."
+    );
+  }
   if (offer.hasOverpricedUnit || request.hasOverpricedUnit) {
     warnings.push(
       "Одна из сторон содержит юнита со статусом Overpriced — рыночная цена может быть временно завышена."

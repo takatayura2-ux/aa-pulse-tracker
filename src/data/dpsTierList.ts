@@ -1,3 +1,4 @@
+import { createSlug } from "@/lib/unit-formatting";
 import type { TrendStatus, Unit } from "@/types/unit";
 
 export type DpsTier = "SS+" | "S+" | "S" | "A" | "B" | "C";
@@ -41,6 +42,14 @@ export interface UnitDpsProfile {
   unitSlug?: string;
   shinyUnitSlug?: string;
   aliases?: string[];
+  /** Каноническое имя аниме-персонажа (EN/RU) */
+  animeLabel?: string;
+  /** Примерная прогнозная цена (Value), если персонаж ещё не передаётся (marketValue === 0) */
+  estimatedValue?: number;
+  /** Ожидаемый диапазон Value (например, "350–520") */
+  estimatedValueRange?: string;
+  /** Методика расчёта примерной цены относительно похожих передаваемых юнитов */
+  estimatedValueNote?: string;
 }
 
 export const LEVEL_100_SCALING_CONSTANT = 9.204065;
@@ -146,6 +155,11 @@ export const DPS_TIER_LIST: UnitDpsProfile[] = [
     uniqueDpsLv100: 954524,
     divineFullCapDpsLv100: 859049,
     marketValue: 0,
+    estimatedValue: 1250,
+    estimatedValueRange: "950–1,600",
+    estimatedValueNote:
+      "Оценка базы фьюжна при открытии трейда: #1 Unique DPS (954K) требует Carrot (Ultra) + Vego (Mage II); экземпляры с готовым двойным Unique оценивались бы ~4,000+.",
+    animeLabel: "Vegito (Вегито) · Dragon Ball",
     shinyValue: "Не передаётся",
     demand: 10,
     rankDelta: 1,
@@ -153,7 +167,7 @@ export const DPS_TIER_LIST: UnitDpsProfile[] = [
     passiveSummary:
       "Наследует сразу 2 трейта Unique от Carrot (Ultra) и Vego (Mage II); Cone 60° (3 удара, Hybrid Air).",
     category: "combat_ladder",
-    aliases: ["fused hero", "vegito"],
+    aliases: ["fused hero", "vegito", "вегито", "фьюжн"],
   },
   {
     rank: 2,
@@ -205,6 +219,11 @@ export const DPS_TIER_LIST: UnitDpsProfile[] = [
     uniquePeakDpsLv100: 1510550,
     divineFullCapDpsLv100: 273504,
     marketValue: 0,
+    estimatedValue: 480,
+    estimatedValueRange: "400–600",
+    estimatedValueNote:
+      "Как стандартный баннер-мифик после Evo стоит ближе к Elyssia (450 Val): пиковый скейлер Infinite до 1.51M+ DPS, но доступность выше, чем у лимитных секреток.",
+    animeLabel: "Griffith (Гриффит) · Berserk",
     shinyValue: "Не передаётся (Evo)",
     demand: 10,
     rankDelta: 2,
@@ -212,7 +231,7 @@ export const DPS_TIER_LIST: UnitDpsProfile[] = [
     passiveSummary:
       "Стартует с 303 853 Unique DPS, но скейлится от жертвы башен (cost^0.47 / 6.0714) до 302K без баффов и 1 510 550+ DPS под баффами (Full AoE, бьёт воздух).",
     category: "combat_ladder",
-    aliases: ["griffin", "darkness", "ascension", "griffith"],
+    aliases: ["griffin", "darkness", "ascension", "griffith", "гриффит", "гриффин"],
   },
   {
     rank: 4,
@@ -261,6 +280,11 @@ export const DPS_TIER_LIST: UnitDpsProfile[] = [
     uniqueDpsLv100: 444862,
     divineFullCapDpsLv100: 133459,
     marketValue: 0,
+    estimatedValue: 1600,
+    estimatedValueRange: "1,300–2,000",
+    estimatedValueNote:
+      "Ориентир на уровне Illusionist (1,800 Val) и топ-ивент секреток (Overlord): Cap 1 идеал под Unique (+344.4%), призывы 1.72M HP и взрыв Nihilism.",
+    animeLabel: "Ainz Ooal Gown (Айнз) · Overlord",
     shinyValue: "Не передаётся (Staff)",
     demand: 10,
     rankDelta: -1,
@@ -268,7 +292,7 @@ export const DPS_TIER_LIST: UnitDpsProfile[] = [
     passiveSummary:
       "1-Cap Secret; Full AoE (3 удара, Air) + 3 призыва Shade Birth по 1.72M HP + активный взрыв Nihilism (5x урона через 12с).",
     category: "combat_ladder",
-    aliases: ["supreme being", "sovereign", "ainz"],
+    aliases: ["supreme being", "sovereign", "ainz", "айнз", "оверлорд"],
   },
   {
     rank: 6,
@@ -289,6 +313,11 @@ export const DPS_TIER_LIST: UnitDpsProfile[] = [
     uniqueDpsLv100: 434253,
     divineFullCapDpsLv100: 390828,
     marketValue: 0,
+    estimatedValue: 550,
+    estimatedValueRange: "420–700",
+    estimatedValueNote:
+      "Портальная секретка Update 20 (Toji): проще в фарме, чем лимитные капсулы (Illusionist 1,800), но True Damage + SS+ урон держат ориентир выше Vengeful Swordsman (335).",
+    animeLabel: "Toji Fushiguro (Тоджи) · Jujutsu Kaisen",
     shinyValue: "Не передаётся (Portal)",
     demand: 9.0,
     rankDelta: -1,
@@ -296,7 +325,7 @@ export const DPS_TIER_LIST: UnitDpsProfile[] = [
     passiveSummary:
       "Чистый True Damage (полностью игнорирует резисты и щиты), огромный Circle AoE и стабильный урон в эндгейме.",
     category: "combat_ladder",
-    aliases: ["sorcerer killer", "heavenly body", "toji"],
+    aliases: ["sorcerer killer", "heavenly body", "toji", "тоджи"],
   },
   {
     rank: 7,
@@ -437,6 +466,11 @@ export const DPS_TIER_LIST: UnitDpsProfile[] = [
     uniqueDpsLv100: 225542,
     divineFullCapDpsLv100: 202988,
     marketValue: 0,
+    estimatedValue: 420,
+    estimatedValueRange: "350–520",
+    estimatedValueNote:
+      "Рукия (Snow Reaper Final / War Evo — Update 20, 7,500 киллов + заморозка Gale of the Moon): спрос 9.5/10 и S+ контроль ставят ориентир между Vengeful Swordsman (335) и Elyssia (450); неэволюционированная база ~260–340 Val.",
+    animeLabel: "Rukia Kuchiki (Рукия) · Bleach",
     shinyValue: "Не передаётся (Evo)",
     demand: 9.5,
     rankDelta: 1,
@@ -444,7 +478,15 @@ export const DPS_TIER_LIST: UnitDpsProfile[] = [
     passiveSummary:
       "Full AoE Hybrid + активка Gale of the Moon (замедление, заморозка Chilled на 6 стаках и дополнительная тычка 100% урона).",
     category: "combat_ladder",
-    aliases: ["snow reaper", "final", "rukia"],
+    aliases: [
+      "snow reaper",
+      "final",
+      "snow reaper war",
+      "rukia",
+      "рукия",
+      "рукиа",
+      "кучики",
+    ],
   },
   {
     rank: 12,
@@ -465,6 +507,11 @@ export const DPS_TIER_LIST: UnitDpsProfile[] = [
     uniqueDpsLv100: 200449,
     divineFullCapDpsLv100: 180400,
     marketValue: 0,
+    estimatedValue: 175,
+    estimatedValueRange: "140–220",
+    estimatedValueNote:
+      "S+ Evo-мифик с 9 хитами против щитов и скрытым 3× множителем; при выходе в трейд ориентир сопоставим с Violentine (82) / Switchblade (170).",
+    animeLabel: "Hanako-kun (Ханако) · TBHK",
     shinyValue: "Не передаётся (Evo)",
     demand: 8.5,
     rankDelta: 2,
@@ -472,7 +519,7 @@ export const DPS_TIER_LIST: UnitDpsProfile[] = [
     passiveSummary:
       "Cone 60° (9 ударов мгновенно сносят щиты); скрытый множитель наносит 3x от отображаемого урона на Upg 6–8 + 50% Burn DoT.",
     category: "combat_ladder",
-    aliases: ["ghost-kun", "ghost kun", "bound", "hanako"],
+    aliases: ["ghost-kun", "ghost kun", "bound", "hanako", "ханако", "призрак"],
   },
   {
     rank: 13,
@@ -493,6 +540,11 @@ export const DPS_TIER_LIST: UnitDpsProfile[] = [
     uniqueDpsLv100: 190933,
     divineFullCapDpsLv100: 171840,
     marketValue: 0,
+    estimatedValue: 150,
+    estimatedValueRange: "120–195",
+    estimatedValueNote:
+      "Legend-мифик под мету +300% Burn от Phoenix: выше базовых баннер-мификов (Legendary Assassin 69) за счёт востребованной связки в Update 21.",
+    animeLabel: "Edo Itachi / Sasuke (Шиноби) · Naruto",
     shinyValue: "Не передаётся (Legend)",
     demand: 9.0,
     rankDelta: 5,
@@ -500,7 +552,7 @@ export const DPS_TIER_LIST: UnitDpsProfile[] = [
     passiveSummary:
       "Circle r=15 (4 удара) + 100% Burn DoT; один из главных бенефициаров Update 21 благодаря баффу +300% урона от ожога от Phoenix.",
     category: "combat_ladder",
-    aliases: ["shinobi", "eternal", "sasuke"],
+    aliases: ["shinobi", "eternal", "sasuke", "itachi", "шиноби", "итачи", "саске"],
   },
   {
     rank: 14,
@@ -611,6 +663,11 @@ export const DPS_TIER_LIST: UnitDpsProfile[] = [
     uniqueDpsLv100: 207600,
     divineFullCapDpsLv100: 187004,
     marketValue: 0,
+    estimatedValue: 140,
+    estimatedValueRange: "110–175",
+    estimatedValueNote:
+      "Топовая жертва для пассивки Griffin и сильнейший Bleed DoT среди мификов; ориентир ~140 Val (выше обычных банерных Evo вроде Legendary Assassin 69 Val).",
+    animeLabel: "Guts (Гатс) · Berserk",
     shinyValue: "Не передаётся (Evo)",
     demand: 8.0,
     rankDelta: -1,
@@ -618,7 +675,7 @@ export const DPS_TIER_LIST: UnitDpsProfile[] = [
     passiveSummary:
       "Full AoE на 5 ударов (бьёт воздух с Upg 8), сильнейший базовый Bleed DoT и лучшая жертва под пассивку Griffin.",
     category: "combat_ladder",
-    aliases: ["berserker", "rage", "guts"],
+    aliases: ["berserker", "rage", "guts", "гатс", "берсерк"],
   },
   {
     rank: 18,
@@ -669,6 +726,11 @@ export const DPS_TIER_LIST: UnitDpsProfile[] = [
     uniqueDpsLv100: 196818,
     divineFullCapDpsLv100: 177136,
     marketValue: 0,
+    estimatedValue: 120,
+    estimatedValueRange: "95–155",
+    estimatedValueNote:
+      "Магический бафф-дебафф Curse (+30% урона) + призыв Mahoraga и Hybrid с Upg 6: ориентир ~120 Val среди S-тир Evo-мификов.",
+    animeLabel: "Megumi Fushiguro (Мегуми) · JJK",
     shinyValue: "Не передаётся (Evo)",
     demand: 8.0,
     rankDelta: 1,
@@ -676,7 +738,7 @@ export const DPS_TIER_LIST: UnitDpsProfile[] = [
     passiveSummary:
       "Накладывает дебафф Curse (+30% маг. урона), получает Hybrid с Upg 6 и призывает адаптивного Divine General (Mahoraga).",
     category: "combat_ladder",
-    aliases: ["shadow sorcerer", "ritual", "megumi", "mahoraga"],
+    aliases: ["shadow sorcerer", "ritual", "megumi", "mahoraga", "мегуми", "махорага"],
   },
   {
     rank: 20,
@@ -877,6 +939,11 @@ export const DPS_TIER_LIST: UnitDpsProfile[] = [
     uniqueDpsLv100: 120271,
     divineFullCapDpsLv100: 108244,
     marketValue: 0,
+    estimatedValue: 95,
+    estimatedValueRange: "75–125",
+    estimatedValueNote:
+      "Raid-мифик под Burn-связку с Phoenix (+300% урона от ожога); ориентир ~95 Val (дороже Kansai 34 и на уровне Violentine 82 за счёт сложности рейда).",
+    animeLabel: "Feitan (Фейтан) · Hunter × Hunter",
     shinyValue: "Не передаётся (Raid)",
     demand: 8.0,
     rankDelta: 4,
@@ -884,7 +951,7 @@ export const DPS_TIER_LIST: UnitDpsProfile[] = [
     passiveSummary:
       "Full AoE (6 ударов) + 40% Burn DoT; резко вырос в мете Update 21 как ключевой напарник под +300% Burn метку Phoenix.",
     category: "combat_ladder",
-    aliases: ["spider", "immolation", "shaiapouf", "feitan"],
+    aliases: ["spider", "immolation", "shaiapouf", "feitan", "фейтан", "паук"],
   },
   {
     rank: 27,
@@ -1179,6 +1246,11 @@ export const SUMMER_UPDATE_21_DPS: UnitDpsProfile[] = [
     uniqueDpsLv100: 245330,
     divineFullCapDpsLv100: 73600,
     marketValue: 0,
+    estimatedValue: 380,
+    estimatedValueRange: "300–480",
+    estimatedValueNote:
+      "Свежая летняя Secret Limited из Summer Portal (Update 21): Cap 1 идеал под Unique + огромный фан-спрос KonoSuba — ориентир ~380 Val (рядом с Vengeful Swordsman 335).",
+    animeLabel: "Megumin (Мегумин) · KonoSuba",
     shinyValue: "Event Summer Portal",
     demand: 9.0,
     rankDelta: 4,
@@ -1186,7 +1258,7 @@ export const SUMMER_UPDATE_21_DPS: UnitDpsProfile[] = [
     passiveSummary:
       "Update 21 (Megumin): радиус взрыва равен полному Range, а все баффы SPA от трейтов и реликвий конвертируются в урон и радиус (не бьёт Soaring).",
     category: "summer_u21",
-    aliases: ["explosion mage", "archdemon", "megumin"],
+    aliases: ["explosion mage", "archdemon", "megumin", "мегумин"],
   },
   {
     rank: 102,
@@ -1207,6 +1279,11 @@ export const SUMMER_UPDATE_21_DPS: UnitDpsProfile[] = [
     uniqueDpsLv100: 230220,
     divineFullCapDpsLv100: 207200,
     marketValue: 0,
+    estimatedValue: 240,
+    estimatedValueRange: "180–310",
+    estimatedValueNote:
+      "Фарм-секретка Sky Island Update 21 (Enel) с сильной связкой под Chuuni (205 Val); ожидаемый старт трейда между Switchblade (170) и Enlightened (265).",
+    animeLabel: "Enel (Энель) · One Piece",
     shinyValue: "Event Sky Island",
     demand: 8.5,
     rankDelta: 3,
@@ -1214,7 +1291,7 @@ export const SUMMER_UPDATE_21_DPS: UnitDpsProfile[] = [
     passiveSummary:
       "Update 21 (Enel): заряжает Storm Ark (удар 140% урона на 5 стаках) и Doomsday Storm облако на 10%/с от накопленных 40% хитов; мощная синергия с Chuuni.",
     category: "summer_u21",
-    aliases: ["sky god", "rumble", "enel"],
+    aliases: ["sky god", "rumble", "enel", "энель"],
   },
   {
     rank: 103,
@@ -1235,6 +1312,11 @@ export const SUMMER_UPDATE_21_DPS: UnitDpsProfile[] = [
     uniqueDpsLv100: 211110,
     divineFullCapDpsLv100: 190000,
     marketValue: 0,
+    estimatedValue: 320,
+    estimatedValueRange: "250–420",
+    estimatedValueNote:
+      "Мастхэв саппорт-керри Summer Banner Update 21 (+300% Burn DoT по врагам): высокий спрос мета-игроков ставит ориентир ~320 Val (на уровне Vengeful Swordsman).",
+    animeLabel: "Marco (Марко) · One Piece",
     shinyValue: "Event Summer Banner",
     demand: 9.0,
     rankDelta: 5,
@@ -1242,7 +1324,7 @@ export const SUMMER_UPDATE_21_DPS: UnitDpsProfile[] = [
     passiveSummary:
       "Update 21 (Marco): ключевой гибридный саппорт-керри под Burn мету, увеличивающий входящий урон от горения (Burn DoT) по врагам на +300%.",
     category: "summer_u21",
-    aliases: ["phoenix", "mythic flames", "marco"],
+    aliases: ["phoenix", "mythic flames", "marco", "марко", "феникс"],
   },
 ];
 
@@ -1819,6 +1901,45 @@ export function formatDpsNumber(value: number): string {
   return Math.round(value).toLocaleString("ru-RU");
 }
 
+export function getDpsProfileSlug(profile: UnitDpsProfile): string {
+  if (profile.unitSlug) return profile.unitSlug;
+  if (profile.rankCode.toUpperCase() === "U21") {
+    return `dps-u21-${createSlug(profile.name)}`;
+  }
+  return `dps-${profile.rankCode.toLowerCase()}`;
+}
+
+export function getEffectiveUnitValue(profile: UnitDpsProfile): {
+  value: number;
+  isEstimated: boolean;
+  range?: string;
+  note?: string;
+} {
+  if (profile.marketValue > 0) {
+    return { value: profile.marketValue, isEstimated: false };
+  }
+  if (profile.estimatedValue && profile.estimatedValue > 0) {
+    return {
+      value: profile.estimatedValue,
+      isEstimated: true,
+      range: profile.estimatedValueRange,
+      note: profile.estimatedValueNote,
+    };
+  }
+  return { value: 0, isEstimated: true };
+}
+
+export function getDpsPerValueInfo(
+  profile: UnitDpsProfile
+): { ratio: number; isEstimated: boolean } | null {
+  const effective = getEffectiveUnitValue(profile);
+  if (effective.value <= 0) return null;
+  return {
+    ratio: profile.uniqueDpsLv100 / effective.value,
+    isEstimated: effective.isEstimated,
+  };
+}
+
 export function getDpsPerValue(profile: UnitDpsProfile): number | null {
   if (!profile.marketValue || profile.marketValue <= 0) return null;
   return profile.uniqueDpsLv100 / profile.marketValue;
@@ -1828,28 +1949,65 @@ function normalizeMatchText(raw: string): string {
   return raw
     .toLowerCase()
     .replace(/\(shiny\)/g, "")
-    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/[^a-z0-9\u0400-\u04ff]+/gi, " ")
     .trim();
+}
+
+export function matchesDpsProfileQuery(
+  entry: UnitDpsProfile,
+  query: string
+): boolean {
+  const q = query.trim().toLowerCase();
+  if (!q) return true;
+  const hay = [
+    entry.rankCode,
+    entry.name,
+    entry.animeLabel ?? "",
+    entry.rarity,
+    entry.element,
+    entry.aoeType,
+    entry.passiveSummary,
+    entry.estimatedValueNote ?? "",
+    ...(entry.aliases ?? []),
+  ]
+    .join(" ")
+    .toLowerCase();
+  return hay.includes(q);
+}
+
+export function findDpsProfileBySlug(slug: string): UnitDpsProfile | null {
+  const normalized = slug.toLowerCase();
+  return (
+    ALL_DPS_PROFILES.find(
+      (entry) =>
+        entry.unitSlug === normalized ||
+        entry.shinyUnitSlug === normalized ||
+        getDpsProfileSlug(entry) === normalized ||
+        `dps-${entry.rankCode.toLowerCase()}` === normalized
+    ) ?? null
+  );
 }
 
 export function findUnitDpsProfile(
   unitOrQuery: Pick<Unit, "slug" | "gameName" | "animeName" | "name"> | string
 ): UnitDpsProfile | null {
   if (typeof unitOrQuery === "string") {
+    const slugMatch = findDpsProfileBySlug(unitOrQuery);
+    if (slugMatch) return slugMatch;
     const norm = normalizeMatchText(unitOrQuery);
     if (!norm) return null;
     for (const entry of ALL_DPS_PROFILES) {
       if (
-        entry.unitSlug === unitOrQuery ||
-        entry.shinyUnitSlug === unitOrQuery ||
-        normalizeMatchText(entry.name) === norm
+        normalizeMatchText(entry.name) === norm ||
+        (entry.animeLabel && normalizeMatchText(entry.animeLabel).includes(norm))
       ) {
         return entry;
       }
       if (
-        entry.aliases?.some(
-          (alias) => norm === normalizeMatchText(alias) || norm.includes(normalizeMatchText(alias))
-        )
+        entry.aliases?.some((alias) => {
+          const aliasNorm = normalizeMatchText(alias);
+          return aliasNorm.length > 0 && (norm === aliasNorm || norm.includes(aliasNorm));
+        })
       ) {
         return entry;
       }
@@ -1858,11 +2016,8 @@ export function findUnitDpsProfile(
   }
 
   const slug = unitOrQuery.slug.toLowerCase();
-  for (const entry of ALL_DPS_PROFILES) {
-    if (entry.unitSlug === slug || entry.shinyUnitSlug === slug) {
-      return entry;
-    }
-  }
+  const slugMatch = findDpsProfileBySlug(slug);
+  if (slugMatch) return slugMatch;
 
   const candidates = [
     normalizeMatchText(unitOrQuery.gameName),
@@ -1879,7 +2034,7 @@ export function findUnitDpsProfile(
       if (
         entry.aliases?.some((alias) => {
           const aliasNorm = normalizeMatchText(alias);
-          return c === aliasNorm || c.includes(aliasNorm);
+          return aliasNorm.length > 0 && (c === aliasNorm || c.includes(aliasNorm));
         })
       ) {
         return entry;
@@ -1891,7 +2046,7 @@ export function findUnitDpsProfile(
 }
 
 /**
- * Конструирует совместимый Unit-объект для AI-анализа, если персонаж не передаётся в трейде (Untradable).
+ * Конструирует совместимый Unit-объект (включая прогнозную цену для Untradable вроде Рукии) для каталога, калькулятора и AI-анализа.
  */
 export function toSyntheticUnitFromDpsProfile(profile: UnitDpsProfile): Unit {
   const mappedTrend: TrendStatus =
@@ -1913,24 +2068,73 @@ export function toSyntheticUnitFromDpsProfile(profile: UnitDpsProfile): Unit {
           : "C";
 
   const mappedSubTier = profile.tier === "SS+" ? "SS" : profile.tier;
+  const effective = getEffectiveUnitValue(profile);
+  const slug = getDpsProfileSlug(profile);
+  const isUntradable = profile.marketValue <= 0;
 
   return {
-    id: profile.unitSlug ?? `dps-${profile.rankCode.toLowerCase()}`,
-    slug: profile.unitSlug ?? `dps-${profile.rankCode.toLowerCase()}`,
+    id: slug,
+    slug,
     name: profile.name,
     gameName: profile.name,
-    animeName: profile.name,
+    animeName: profile.animeLabel ?? profile.name,
     isShiny: false,
-    value: profile.marketValue > 0 ? profile.marketValue : null,
+    value: effective.value > 0 ? effective.value : null,
     valueDisplay:
-      profile.marketValue > 0 ? profile.marketValue.toLocaleString("en-US") : "Untradable",
+      effective.value > 0
+        ? effective.isEstimated
+          ? `~${effective.value.toLocaleString("en-US")}`
+          : effective.value.toLocaleString("en-US")
+        : "Untradable",
     demand: profile.demand,
     trend: mappedTrend,
-    rawTrend: mappedTrend,
+    rawTrend: isUntradable ? "Прогноз / Не в трейде" : mappedTrend,
     tier: mappedTier,
     subTier: mappedSubTier,
-    information: `${profile.rarity} · ${profile.aoeType} · ${profile.element}`,
-    sourceTab: `DPS ${profile.rankCode}`,
+    information: effective.note
+      ? `${profile.rarity} · ${profile.aoeType}. ${effective.note}`
+      : `${profile.rarity} · ${profile.aoeType} · ${profile.element}`,
+    sourceTab: isUntradable ? "Прогноз (Без трейда)" : `DPS ${profile.rankCode}`,
     rank: profile.rank,
+    isUntradable,
+    isEstimatedValue: effective.isEstimated,
+    estimatedValueRange: effective.range,
+    estimatedNote: effective.note,
+    searchAliases: profile.aliases,
+  };
+}
+
+/**
+ * Возвращает список всех непередаваемых персонажей Update 20/21 (вкл. Рукию) с ориентировочной прогнозной ценой.
+ */
+export function getUntradableCatalogUnits(): Unit[] {
+  return ALL_DPS_PROFILES.filter(
+    (entry) => entry.marketValue <= 0 && (entry.estimatedValue ?? 0) > 0
+  ).map((entry) => toSyntheticUnitFromDpsProfile(entry));
+}
+
+const SHEET_PRICELESS_ESTIMATES: Record<
+  string,
+  { range: string; note: string }
+> = {
+  "jio-over-heaven-dio-shiny": {
+    range: "280,000–400,000+ (OC)",
+    note: "В таблице указан статус N/A (меньше 30 копий в игре). Базовая не-Shiny версия оценивается в 38,500–39,500 Val — Shiny продаётся строго по договорному оферу.",
+  },
+  "time-saviour-gohan-shiny": {
+    range: "150,000–220,000+ (OC)",
+    note: "Лидерборд Week 1 (<40 копий, N/A в таблице). Ориентир строится с 5–7× премией относительно не-Shiny версии (30,500 Val).",
+  },
+};
+
+export function enrichSheetUnitWithEstimate(unit: Unit): Unit {
+  if (unit.value !== null) return unit;
+  const estimate = SHEET_PRICELESS_ESTIMATES[unit.slug];
+  if (!estimate) return unit;
+  return {
+    ...unit,
+    isEstimatedValue: true,
+    estimatedValueRange: estimate.range,
+    estimatedNote: estimate.note,
   };
 }

@@ -51,13 +51,24 @@ function buildDpsAnalysisBreakdown(
   const isVegito = profile.name.toLowerCase().includes("fused hero");
   const uniqueEfficiency = isVegito
     ? `Исключение из правил 1-Cap: Fused Hero наследует сразу два трейта Unique от Carrot (Ultra) и Vego (Mage II), разгоняя 1 башню до ${formatDpsNumber(profile.uniqueDpsLv100)} Unique DPS на 100-м уровне (против ${formatDpsNumber(profile.divineFullCapDpsLv100)} у 3× Divine).`
-    : `${capMath.headline}. 1 башня с Unique выдаёт ${formatDpsNumber(profile.uniqueDpsLv100)} DPS${peakNote} против ${formatDpsNumber(profile.divineFullCapDpsLv100)} DPS у полной команды из ${profile.cap} копий с Divine (${capMath.explanation})`;
+    : `${capMath.headline}. 1 башня с Unique выдаёт ${formatDpsNumber(profile.uniqueDpsLv100)} DPS${peakNote} против ${formatDpsNumber(profile.divineFullCapDpsLv100)} DPS у полной команды из ${profile.cap === 1 ? "1 башни" : `${profile.cap} копий`} с Divine (${capMath.explanation})`;
 
+  const isUntradableProfile = profile.marketValue <= 0;
   const effectiveValue =
-    unit.value !== null && unit.value > 0 ? unit.value : profile.marketValue;
+    !isUntradableProfile
+      ? unit.value !== null && unit.value > 0
+        ? unit.value
+        : profile.marketValue
+      : profile.estimatedValue && profile.estimatedValue > 0
+        ? profile.estimatedValue
+        : 0;
 
   let dpsToValueVerdict: string;
-  if (effectiveValue <= 0) {
+  if (isUntradableProfile && effectiveValue > 0) {
+    const ratio = Math.round(profile.uniqueDpsLv100 / effectiveValue);
+    const rangeTxt = profile.estimatedValueRange ? ` (диапазон ${profile.estimatedValueRange})` : "";
+    dpsToValueVerdict = `Ещё не передаётся в трейде (${profile.rarity}). Прогноз цены при открытии трейда: ~${formatValue(effectiveValue)} Value${rangeTxt} (~${formatRerolls(effectiveValue)}) — удельная отдача ~${formatDpsNumber(ratio)} DPS на 1 прогноз. Value.`;
+  } else if (effectiveValue <= 0) {
     dpsToValueVerdict = `Непередаваемый юнит (${profile.rarity}): не покупается в трейде, добывается напрямую через геймплей и полностью оправдывает вложение рероллов в Unique.`;
   } else if (profile.category === "collector_exclusive") {
     const ratio = Math.round(profile.uniqueDpsLv100 / effectiveValue);
@@ -115,9 +126,11 @@ function buildHeuristicAnalysis(unit: Unit): AiUnitAnalysis {
     : "";
 
   const valueText =
-    unit.value === null
-      ? `Персонаж относится к ультра-редкому сегменту ${unit.subTier} без фиксированной цены (N/A) — сделки проходят индивидуально через оверпеи коллекционеров.`
-      : `Текущая оценка ${formatValue(unit.value)} Value (~${rerollEq}) соответствует под-тиру ${unit.subTier}.`;
+    unit.isUntradable && unit.value !== null
+      ? `Персонаж ещё не открыт для трейда (Untradable), но по аналогам своего тира его примерная оценка составляет ~${formatValue(unit.value)} Value${unit.estimatedValueRange ? ` (диапазон ${unit.estimatedValueRange})` : ""}, что эквивалентно ~${rerollEq}.`
+      : unit.value === null
+        ? `Персонаж относится к ультра-редкому сегменту ${unit.subTier} без фиксированной цены (N/A)${unit.estimatedValueRange ? ` — примерный ориентир договорных оферов ${unit.estimatedValueRange} Value` : " — сделки проходят индивидуально через оверпеи коллекционеров"}.`
+        : `Текущая оценка ${formatValue(unit.value)} Value (~${rerollEq}) соответствует под-тиру ${unit.subTier}.`;
 
   const whyThisPrice = `${valueText} ${scarcityReason}${shinyReason}`;
 
@@ -245,7 +258,7 @@ export async function analyzeUnitWithGemini(
 - Unique DPS (1 башня, Lv100): ${formatDpsNumber(dpsProfile.uniqueDpsLv100)}${dpsProfile.uniquePeakDpsLv100 ? ` (пик с жертвой/баффами: ${formatDpsNumber(dpsProfile.uniquePeakDpsLv100)})` : ""}
 - Divine Full Cap DPS (все ${dpsProfile.cap} башни): ${formatDpsNumber(dpsProfile.divineFullCapDpsLv100)}
 - Расчёт Placement Cap для Unique (4.444x на 1 слоте): ${capMath?.headline} — ${capMath?.explanation}
-- Рыночный ориентир Value: ${dpsProfile.marketValue > 0 ? dpsProfile.marketValue : "Untradable"} | Дельта топа: ${dpsProfile.rankDelta >= 0 ? `+${dpsProfile.rankDelta}` : dpsProfile.rankDelta}
+- Рыночный ориентир Value: ${dpsProfile.marketValue > 0 ? dpsProfile.marketValue : dpsProfile.estimatedValue ? `Untradable · Прогноз ~${dpsProfile.estimatedValue} Val (${dpsProfile.estimatedValueRange ?? "Est."})` : "Untradable"} | Дельта топа: ${dpsProfile.rankDelta >= 0 ? `+${dpsProfile.rankDelta}` : dpsProfile.rankDelta}
 - Пассивка и роль в мете Update 21: ${dpsProfile.passiveSummary}`
     : `Боевой профиль Update 21: персонаж не входит в основной топ-35 боевых уников/секреток Update 21 (рассматривается как рыночный/стартовый актив).
 Справка по математике Unique: 1-Cap = +344.4% прироста, 2-Cap = +122.2%, 3-Cap = +48.1% (+11.1% к 3× Divine), 4-Cap = лучше ставить 4× Divine (5.333x) вместо 1× Unique (4.444x) в длинных режимах.`;
@@ -257,9 +270,10 @@ export async function analyzeUnitWithGemini(
 
 Персонаж: ${unit.name}
 Игровое имя: ${unit.gameName} | Персонаж аниме: ${unit.animeName}
+Статус трейда: ${unit.isUntradable ? "Ещё НЕ передаётся (Untradable, прогнозная оценка)" : "Торгуется в Trading Hub"}
 Shiny-версия: ${unit.isShiny ? "Да (SHINY)" : "Нет"}
 Tier: ${unit.tier} (Sub-Tier: ${unit.subTier})
-Value: ${unit.value !== null ? unit.value : "N/A (коллекционная договорная цена)"}
+Value: ${unit.value !== null ? `${unit.isEstimatedValue ? "~" : ""}${unit.value}${unit.estimatedValueRange ? ` (ориентировочный диапазон ${unit.estimatedValueRange})` : ""}` : `N/A${unit.estimatedValueRange ? ` (коллекционный ориентир ${unit.estimatedValueRange})` : " (коллекционная договорная цена)"}`}
 Эквивалент в рероллах (1 RR ≈ 20 Value): ${formatRerolls(unit.value)}
 Demand: ${unit.demand} / 10
 Статус тренда: ${unit.trend}

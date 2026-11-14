@@ -42,6 +42,16 @@ export interface Unit {
   information: string;
   sourceTab: string;
   rank: number;
+  /** Персонаж ещё не передаётся в трейде (Untradable) */
+  isUntradable?: boolean;
+  /** Ориентировочная (прогнозная) цена до открытия трейда или для договорных N/A */
+  isEstimatedValue?: boolean;
+  /** Прогнозный диапазон Value (например, "350–520") */
+  estimatedValueRange?: string;
+  /** Пояснение расчёта примерной цены */
+  estimatedNote?: string;
+  /** Дополнительные поисковые псевдонимы (включая RU/EN имена аниме-персонажей) */
+  searchAliases?: string[];
 }
 
 export interface MarketStats {

@@ -22,8 +22,11 @@ import {
   SUMMER_UPDATE_21_DPS,
   formatDpsNumber,
   getBestUniqueRank,
-  getDpsPerValue,
+  getDpsPerValueInfo,
+  getDpsProfileSlug,
+  getEffectiveUnitValue,
   getUniquePlacementMath,
+  matchesDpsProfileQuery,
   toSyntheticUnitFromDpsProfile,
   type DpsTier,
   type UnitDpsProfile,
@@ -66,8 +69,6 @@ export function CompactDpsLadder({ onOpenFullCategory }: CompactDpsLadderProps) 
       ? [...DPS_TIER_LIST, ...SUMMER_UPDATE_21_DPS, ...COLLECTOR_EXCLUSIVES_DPS]
       : [...DPS_TIER_LIST];
 
-    const q = searchQuery.trim().toLowerCase();
-
     const filtered = pool.filter((entry) => {
       if (tierFilter === "BC") {
         if (entry.tier !== "B" && entry.tier !== "C") return false;
@@ -75,11 +76,7 @@ export function CompactDpsLadder({ onOpenFullCategory }: CompactDpsLadderProps) 
         if (entry.tier !== tierFilter) return false;
       }
 
-      if (q) {
-        const hay = `${entry.rankCode} ${entry.name} ${entry.rarity} ${entry.element} ${entry.passiveSummary}`.toLowerCase();
-        if (!hay.includes(q)) return false;
-      }
-      return true;
+      return matchesDpsProfileQuery(entry, searchQuery);
     });
 
     const sorted = [...filtered];
@@ -102,8 +99,8 @@ export function CompactDpsLadder({ onOpenFullCategory }: CompactDpsLadderProps) 
         return b.uniqueDpsLv100 - a.uniqueDpsLv100;
       }
       // dps_per_value
-      const ratioA = getDpsPerValue(a) ?? -1;
-      const ratioB = getDpsPerValue(b) ?? -1;
+      const ratioA = getDpsPerValueInfo(a)?.ratio ?? -1;
+      const ratioB = getDpsPerValueInfo(b)?.ratio ?? -1;
       if (ratioB !== ratioA) return ratioB - ratioA;
       return b.uniqueDpsLv100 - a.uniqueDpsLv100;
     });
@@ -119,7 +116,7 @@ export function CompactDpsLadder({ onOpenFullCategory }: CompactDpsLadderProps) 
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          slug: entry.unitSlug,
+          slug: getDpsProfileSlug(entry),
           unit: toSyntheticUnitFromDpsProfile(entry),
           forceRefresh: false,
         }),
@@ -311,7 +308,7 @@ export function CompactDpsLadder({ onOpenFullCategory }: CompactDpsLadderProps) 
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Поиск в топе: Vegito, Aizen, Chihiro, Kansai..."
+              placeholder="Поиск: Vegito, Рукия, Aizen, Ainz, Kansai..."
               className="w-full rounded-xl border border-slate-800 bg-[#060911] py-1.5 pr-7 pl-8 text-xs text-white placeholder-slate-500 outline-none transition focus:border-cyan-400"
             />
             {searchQuery && (
@@ -340,7 +337,9 @@ export function CompactDpsLadder({ onOpenFullCategory }: CompactDpsLadderProps) 
                   dpsMode === "unique"
                     ? entry.uniqueDpsLv100
                     : entry.divineFullCapDpsLv100;
-                const ratio = getDpsPerValue(entry);
+                const ratioInfo = getDpsPerValueInfo(entry);
+                const effectiveValue = getEffectiveUnitValue(entry);
+                const detailSlug = getDpsProfileSlug(entry);
                 const capMath = getUniquePlacementMath(entry.cap);
                 const aiResult = aiCache[rowKey];
                 const isAiLoading = aiLoadingKey === rowKey;
@@ -404,12 +403,28 @@ export function CompactDpsLadder({ onOpenFullCategory }: CompactDpsLadderProps) 
                           {formatDpsNumber(displayDps)}
                         </div>
                         <div className="font-mono-num tabular-nums text-[10px] text-slate-400">
-                          {sortMode === "dps_per_value" && ratio !== null ? (
-                            <span className="font-semibold text-violet-300">
-                              {formatDpsNumber(ratio)} /Val
+                          {sortMode === "dps_per_value" && ratioInfo !== null ? (
+                            <span
+                              className={`font-semibold ${
+                                ratioInfo.isEstimated
+                                  ? "text-amber-300"
+                                  : "text-violet-300"
+                              }`}
+                            >
+                              {ratioInfo.isEstimated ? "~" : ""}
+                              {formatDpsNumber(ratioInfo.ratio)} /Val
                             </span>
-                          ) : entry.marketValue > 0 ? (
-                            `${entry.marketValue.toLocaleString("en-US")} Val`
+                          ) : effectiveValue.value > 0 ? (
+                            effectiveValue.isEstimated ? (
+                              <span
+                                className="font-semibold text-violet-300"
+                                title="Примерная прогнозная цена (Без трейда)"
+                              >
+                                ~{effectiveValue.value.toLocaleString("en-US")} Val*
+                              </span>
+                            ) : (
+                              `${effectiveValue.value.toLocaleString("en-US")} Val`
+                            )
                           ) : (
                             <span className="text-slate-500">No Trade</span>
                           )}
@@ -438,13 +453,24 @@ export function CompactDpsLadder({ onOpenFullCategory }: CompactDpsLadderProps) 
                             <strong className="text-slate-200">
                               {entry.aoeType}
                             </strong>
-                            {ratio !== null && (
+                            {ratioInfo !== null && (
                               <span className="ml-2 font-semibold text-violet-300">
-                                · {formatDpsNumber(ratio)} DPS / 1 Val
+                                · {ratioInfo.isEstimated ? "~" : ""}
+                                {formatDpsNumber(ratioInfo.ratio)} DPS / 1 Val
                               </span>
                             )}
                           </div>
                         </div>
+
+                        {effectiveValue.isEstimated && effectiveValue.value > 0 && (
+                          <div className="rounded-lg border border-violet-500/35 bg-violet-500/12 px-2 py-1.5 text-[10px] leading-relaxed text-violet-100">
+                            <span className="font-bold text-amber-200">
+                              Без трейда · Прогноз ~{effectiveValue.value.toLocaleString("en-US")} Val
+                              {effectiveValue.range ? ` (${effectiveValue.range})` : ""}:
+                            </span>{" "}
+                            {effectiveValue.note}
+                          </div>
+                        )}
 
                         {entry.uniquePeakDpsLv100 && (
                           <div className="rounded-lg border border-fuchsia-500/30 bg-fuchsia-500/10 px-2 py-1 text-[10px] font-semibold text-fuchsia-200">
@@ -478,15 +504,13 @@ export function CompactDpsLadder({ onOpenFullCategory }: CompactDpsLadderProps) 
                             </span>
                           </button>
 
-                          {entry.unitSlug && (
-                            <Link
-                              href={`/units/${entry.unitSlug}`}
-                              className="inline-flex items-center gap-1 rounded-lg border border-slate-700 bg-slate-900 px-2.5 py-1.5 text-[11px] font-semibold text-slate-200 transition hover:border-cyan-500/50 hover:text-cyan-200"
-                            >
-                              <span>Карточка</span>
-                              <ArrowUpRight className="h-3 w-3" />
-                            </Link>
-                          )}
+                          <Link
+                            href={`/units/${detailSlug}`}
+                            className="inline-flex items-center gap-1 rounded-lg border border-slate-700 bg-slate-900 px-2.5 py-1.5 text-[11px] font-semibold text-slate-200 transition hover:border-cyan-500/50 hover:text-cyan-200"
+                          >
+                            <span>Карточка</span>
+                            <ArrowUpRight className="h-3 w-3" />
+                          </Link>
                         </div>
 
                         {aiErrorKey === rowKey && (

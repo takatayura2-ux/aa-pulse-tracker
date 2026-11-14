@@ -17,20 +17,29 @@ import {
   X,
   Database,
   Swords,
+  Lock,
 } from "lucide-react";
 import {
   formatRerolls,
   getDemandInfo,
 } from "@/lib/unit-formatting";
-import { ShinyBadge, TierBadge, TrendBadge } from "@/components/UnitBadges";
+import {
+  EstimatedValueBadge,
+  ShinyBadge,
+  TierBadge,
+  TrendBadge,
+} from "@/components/UnitBadges";
 import { UnitCard } from "@/components/UnitCard";
 import { useTrade } from "@/components/TradeProvider";
 import { CompactDpsLadder } from "@/components/CompactDpsLadder";
 import { DpsTierListFullView } from "@/components/DpsTierListFullView";
-import { ALL_DPS_PROFILES } from "@/data/dpsTierList";
+import {
+  ALL_DPS_PROFILES,
+  getUntradableCatalogUnits,
+} from "@/data/dpsTierList";
 import type { MarketSnapshot, Tier, Unit } from "@/types/unit";
 
-type TrackerTab = "all" | "rising" | "dropping" | "new" | "dps_top";
+type TrackerTab = "all" | "rising" | "dropping" | "new" | "untradable" | "dps_top";
 type DemandFilter = "all" | "very_high" | "high" | "average_plus" | "low";
 type SortOption =
   | "rank"
@@ -57,6 +66,7 @@ export function UnitTrackerDashboard({
   const [tierFilter, setTierFilter] = useState<"ALL" | Tier>("ALL");
   const [demandFilter, setDemandFilter] = useState<DemandFilter>("all");
   const [shinyOnly, setShinyOnly] = useState(false);
+  const [includeUntradablesInAll, setIncludeUntradablesInAll] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>("rank");
   const [viewMode, setViewMode] = useState<"grid" | "table">("grid");
 
@@ -89,11 +99,19 @@ export function UnitTrackerDashboard({
     () => snapshot.units.filter((u) => u.tier === "New").length,
     [snapshot.units]
   );
+  const untradableUnits = useMemo(() => getUntradableCatalogUnits(), []);
 
   const filteredUnits = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
 
-    const matches = snapshot.units.filter((u) => {
+    const basePool =
+      activeTab === "untradable"
+        ? untradableUnits
+        : activeTab === "all" && (q.length > 0 || includeUntradablesInAll)
+          ? [...snapshot.units, ...untradableUnits]
+          : snapshot.units;
+
+    const matches = basePool.filter((u) => {
       // Tab filter
       if (activeTab === "rising") {
         if (strictRisingOnly) {
@@ -115,6 +133,8 @@ export function UnitTrackerDashboard({
         }
       } else if (activeTab === "new") {
         if (u.tier !== "New") return false;
+      } else if (activeTab === "untradable") {
+        if (!u.isUntradable) return false;
       }
 
       // Tier filter
@@ -133,9 +153,9 @@ export function UnitTrackerDashboard({
       if (demandFilter === "average_plus" && u.demand < 5.0) return false;
       if (demandFilter === "low" && u.demand >= 4.5) return false;
 
-      // Search
+      // Search (включая RU/EN алиасы вроде "рукия")
       if (q) {
-        const hay = `${u.name} ${u.gameName} ${u.animeName} ${u.subTier} ${u.trend} ${u.information}`.toLowerCase();
+        const hay = `${u.name} ${u.gameName} ${u.animeName} ${u.subTier} ${u.trend} ${u.information} ${(u.searchAliases ?? []).join(" ")}`.toLowerCase();
         if (!hay.includes(q)) return false;
       }
 
@@ -177,6 +197,8 @@ export function UnitTrackerDashboard({
     return sorted;
   }, [
     snapshot.units,
+    untradableUnits,
+    includeUntradablesInAll,
     activeTab,
     strictRisingOnly,
     strictDroppingOnly,
@@ -192,6 +214,7 @@ export function UnitTrackerDashboard({
     setTierFilter("ALL");
     setDemandFilter("all");
     setShinyOnly(false);
+    setIncludeUntradablesInAll(false);
     setSortBy("rank");
     setStrictRisingOnly(false);
     setStrictDroppingOnly(false);
@@ -266,6 +289,9 @@ export function UnitTrackerDashboard({
               {snapshot.stats.totalUnits}
               <span className="text-xs font-medium text-amber-300">
                 {snapshot.stats.shinyCount} Shiny
+              </span>
+              <span className="text-xs font-semibold text-violet-300">
+                +{untradableUnits.length} прогноз
               </span>
             </div>
           </div>
@@ -375,6 +401,22 @@ export function UnitTrackerDashboard({
 
           <button
             type="button"
+            onClick={() => setActiveTab("untradable")}
+            className={`inline-flex items-center gap-2 rounded-xl border px-3.5 py-2 text-sm font-semibold transition ${
+              activeTab === "untradable"
+                ? "border-violet-400/60 bg-violet-500/20 text-violet-100"
+                : "border-slate-800 bg-[#0c111d] text-slate-300 hover:border-violet-500/35 hover:text-violet-200"
+            }`}
+          >
+            <Lock className="h-4 w-4 text-violet-300" />
+            <span>Без трейда (~цена)</span>
+            <span className="font-mono-num rounded-md bg-violet-500/20 px-1.5 py-0.5 text-xs text-violet-200">
+              {untradableUnits.length}
+            </span>
+          </button>
+
+          <button
+            type="button"
             onClick={() => setActiveTab("dps_top")}
             className={`inline-flex items-center gap-2 rounded-xl border px-3.5 py-2 text-sm font-semibold transition ${
               activeTab === "dps_top"
@@ -479,6 +521,14 @@ export function UnitTrackerDashboard({
         </div>
       )}
 
+      {activeTab === "untradable" && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-violet-500/30 bg-violet-500/10 px-4 py-3 text-xs leading-relaxed text-violet-100">
+          <p>
+            Показаны персонажи Update 20–21, которых <strong>ещё нельзя передавать в трейде</strong> (например, <strong>Snow Reaper / Рукия ~420 Val</strong>, Vegito ~1,250, Supreme Being ~1,600, Megumin ~380). Оценка рассчитана по их DPS, спросу и ближайшим лимитным аналогам.
+          </p>
+        </div>
+      )}
+
       {/* Search & Filters Bar */}
       <section className="rounded-2xl border border-slate-800/90 bg-[#0b101b]/95 p-4">
         <div className="grid grid-cols-1 gap-3 md:grid-cols-12">
@@ -489,7 +539,7 @@ export function UnitTrackerDashboard({
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Живой поиск: Aizen, Dio, Alucard, SSS, Tournament..."
+              placeholder="Живой поиск: Рукия, Aizen, Vegito, Dio, Megumin, SSS..."
               className="w-full rounded-xl border border-slate-700/80 bg-[#060911] py-2.5 pr-9 pl-10 text-sm text-white placeholder-slate-500 outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-500/20"
             />
             {searchQuery && (
@@ -574,6 +624,24 @@ export function UnitTrackerDashboard({
                 {tier === "ALL" ? "Все тиры" : `${tier} Tier`}
               </button>
             ))}
+
+            {activeTab === "all" && (
+              <button
+                type="button"
+                onClick={() => setIncludeUntradablesInAll((v) => !v)}
+                className={`ml-1 inline-flex items-center gap-1 rounded-lg border px-2.5 py-1 text-xs font-bold transition ${
+                  includeUntradablesInAll
+                    ? "border-violet-400/60 bg-violet-500/20 text-violet-100"
+                    : "border-slate-800 bg-slate-900/70 text-slate-400 hover:border-violet-500/40 hover:text-violet-200"
+                }`}
+                title="Добавить непередаваемых персонажей с прогнозной ценой в общий список (при поиске они находятся автоматически)"
+              >
+                <Lock className="h-3 w-3 text-violet-300" />
+                <span>
+                  + Без трейда ({untradableUnits.length})
+                </span>
+              </button>
+            )}
           </div>
 
           <div className="flex items-center gap-3 text-xs text-slate-400">
@@ -652,7 +720,7 @@ export function UnitTrackerDashboard({
                         <TierBadge tier={unit.tier} subTier={unit.subTier} />
                       </td>
                       <td className="px-4 py-3">
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
                           <Link
                             href={`/units/${unit.slug}`}
                             className="font-bold text-white hover:text-cyan-300"
@@ -660,6 +728,12 @@ export function UnitTrackerDashboard({
                             {unit.gameName}
                           </Link>
                           {unit.isShiny && <ShinyBadge compact />}
+                          {(unit.isUntradable || unit.isEstimatedValue) && (
+                            <EstimatedValueBadge
+                              isUntradable={unit.isUntradable}
+                              compact
+                            />
+                          )}
                         </div>
                         <div className="mt-0.5 text-xs text-slate-400">
                           {unit.animeName !== unit.gameName
@@ -671,7 +745,18 @@ export function UnitTrackerDashboard({
                         </div>
                       </td>
                       <td className="font-mono-num px-4 py-3 font-bold text-white">
-                        {unit.valueDisplay}
+                        <span
+                          className={
+                            unit.isEstimatedValue ? "text-amber-200" : "text-white"
+                          }
+                        >
+                          {unit.valueDisplay}
+                        </span>
+                        {unit.estimatedValueRange && (
+                          <div className="text-[10px] font-normal text-violet-300">
+                            {unit.estimatedValueRange}
+                          </div>
+                        )}
                       </td>
                       <td className="font-mono-num px-4 py-3 text-xs font-semibold text-cyan-300">
                         {formatRerolls(unit.value)}

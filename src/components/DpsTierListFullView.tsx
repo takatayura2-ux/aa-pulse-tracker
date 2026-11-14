@@ -7,7 +7,6 @@ import {
   Gem,
   Search,
   Sparkles,
-  TrendingUp,
   X,
 } from "lucide-react";
 import {
@@ -17,8 +16,11 @@ import {
   SUMMER_UPDATE_21_DPS,
   formatDpsNumber,
   getBestUniqueRank,
-  getDpsPerValue,
+  getDpsPerValueInfo,
+  getDpsProfileSlug,
+  getEffectiveUnitValue,
   getUniquePlacementMath,
+  matchesDpsProfileQuery,
   type DpsCategory,
   type DpsTier,
   type UnitDpsProfile,
@@ -55,16 +57,10 @@ export function DpsTierListFullView() {
             ? COLLECTOR_EXCLUSIVES_DPS
             : ALL_DPS_PROFILES;
 
-    const q = searchQuery.trim().toLowerCase();
-
     const filtered = basePool.filter((item) => {
       if (tierFilter !== "ALL" && item.tier !== tierFilter) return false;
       if (airOnly && !item.hitsAir) return false;
-      if (q) {
-        const hay = `${item.rankCode} ${item.name} ${item.rarity} ${item.element} ${item.aoeType} ${item.passiveSummary}`.toLowerCase();
-        if (!hay.includes(q)) return false;
-      }
-      return true;
+      return matchesDpsProfileQuery(item, searchQuery);
     });
 
     const sorted = [...filtered];
@@ -85,8 +81,8 @@ export function DpsTierListFullView() {
         if (b.rankDelta !== a.rankDelta) return b.rankDelta - a.rankDelta;
         return b.uniqueDpsLv100 - a.uniqueDpsLv100;
       }
-      const ratioA = getDpsPerValue(a) ?? -1;
-      const ratioB = getDpsPerValue(b) ?? -1;
+      const ratioA = getDpsPerValueInfo(a)?.ratio ?? -1;
+      const ratioB = getDpsPerValueInfo(b)?.ratio ?? -1;
       if (ratioB !== ratioA) return ratioB - ratioA;
       return b.uniqueDpsLv100 - a.uniqueDpsLv100;
     });
@@ -208,7 +204,7 @@ export function DpsTierListFullView() {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Поиск: Vegito, Aizen, Griffin, JIO, Chihiro, Megumin..."
+              placeholder="Поиск: Vegito, Рукия, Aizen, Griffin, Ainz, Megumin..."
               className="w-full rounded-xl border border-slate-700/80 bg-[#060911] py-2 pr-8 pl-9 text-xs text-white placeholder-slate-500 outline-none focus:border-cyan-400 sm:text-sm"
             />
             {searchQuery && (
@@ -291,7 +287,9 @@ export function DpsTierListFullView() {
             <tbody className="divide-y divide-slate-800/70">
               {rows.map((entry) => {
                 const bestRank = getBestUniqueRank(entry);
-                const ratio = getDpsPerValue(entry);
+                const ratioInfo = getDpsPerValueInfo(entry);
+                const effectiveValue = getEffectiveUnitValue(entry);
+                const detailSlug = getDpsProfileSlug(entry);
                 const capMath = getUniquePlacementMath(entry.cap);
 
                 return (
@@ -378,37 +376,46 @@ export function DpsTierListFullView() {
                     </td>
 
                     <td className="px-3.5 py-3 align-top">
-                      <div className="font-mono-num font-bold text-white">
-                        {entry.marketValue > 0
-                          ? `${entry.marketValue.toLocaleString("en-US")} Val`
-                          : "Untradable"}
-                      </div>
-                      <div className="text-[10px] text-slate-400">
+                      {effectiveValue.value > 0 ? (
+                        effectiveValue.isEstimated ? (
+                          <div>
+                            <div className="font-mono-num font-extrabold text-amber-200">
+                              ~{effectiveValue.value.toLocaleString("en-US")} Val
+                            </div>
+                            <span className="mt-0.5 inline-block rounded border border-violet-500/40 bg-violet-500/15 px-1.5 py-0.5 text-[9px] font-bold text-violet-200 uppercase">
+                              Прогноз {effectiveValue.range ? `(${effectiveValue.range})` : ""}
+                            </span>
+                          </div>
+                        ) : (
+                          <div className="font-mono-num font-bold text-white">
+                            {effectiveValue.value.toLocaleString("en-US")} Val
+                          </div>
+                        )
+                      ) : (
+                        <div className="font-mono-num font-bold text-slate-400">
+                          Untradable
+                        </div>
+                      )}
+                      <div className="mt-0.5 text-[10px] text-slate-400">
                         Demand {entry.demand}/10
                       </div>
-                      {ratio !== null && (
+                      {ratioInfo !== null && (
                         <div className="font-mono-num mt-0.5 inline-flex items-center gap-1 text-[11px] font-bold text-violet-300">
                           <Gem className="h-3 w-3" />
-                          {formatDpsNumber(ratio)} /Val
+                          {ratioInfo.isEstimated ? "~" : ""}
+                          {formatDpsNumber(ratioInfo.ratio)} /Val
                         </div>
                       )}
                     </td>
 
                     <td className="px-3.5 py-3 text-right align-top">
-                      {entry.unitSlug ? (
-                        <Link
-                          href={`/units/${entry.unitSlug}`}
-                          className="inline-flex items-center gap-1 rounded-lg border border-slate-700 bg-slate-800/80 px-2.5 py-1.5 text-xs font-semibold text-slate-200 transition hover:border-cyan-500/50 hover:text-cyan-200"
-                        >
-                          <span>Карточка</span>
-                          <ArrowUpRight className="h-3 w-3" />
-                        </Link>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 rounded-lg border border-slate-800 bg-slate-900/70 px-2 py-1 text-[11px] text-slate-400">
-                          <TrendingUp className="h-3 w-3 text-slate-500" />
-                          No Trade
-                        </span>
-                      )}
+                      <Link
+                        href={`/units/${detailSlug}`}
+                        className="inline-flex items-center gap-1 rounded-lg border border-slate-700 bg-slate-800/80 px-2.5 py-1.5 text-xs font-semibold text-slate-200 transition hover:border-cyan-500/50 hover:text-cyan-200"
+                      >
+                        <span>Карточка</span>
+                        <ArrowUpRight className="h-3 w-3" />
+                      </Link>
                     </td>
                   </tr>
                 );

@@ -8,7 +8,12 @@ import {
   getDemandInfo,
   getTierMeta,
 } from "@/lib/unit-formatting";
-import { ShinyBadge, TierBadge, TrendBadge } from "@/components/UnitBadges";
+import {
+  EstimatedValueBadge,
+  ShinyBadge,
+  TierBadge,
+  TrendBadge,
+} from "@/components/UnitBadges";
 import { useTrade } from "@/components/TradeProvider";
 import type { Unit } from "@/types/unit";
 
@@ -28,6 +33,12 @@ export function UnitCard({ unit }: { unit: Unit }) {
           <div className="flex flex-wrap items-center gap-1.5">
             <TierBadge tier={unit.tier} subTier={unit.subTier} />
             {unit.isShiny && <ShinyBadge compact />}
+            {(unit.isUntradable || unit.isEstimatedValue) && (
+              <EstimatedValueBadge
+                isUntradable={unit.isUntradable}
+                compact
+              />
+            )}
           </div>
           <TrendBadge trend={unit.trend} />
         </div>
@@ -54,11 +65,24 @@ export function UnitCard({ unit }: { unit: Unit }) {
         <div className="flex items-end justify-between gap-3">
           <div>
             <span className="block text-[10px] font-semibold tracking-wider text-slate-500 uppercase">
-              Value
+              {unit.isUntradable
+                ? "Прогноз Value"
+                : unit.isEstimatedValue
+                  ? "Рынок (Ориентир)"
+                  : "Value"}
             </span>
-            <div className="font-mono-num mt-0.5 text-xl font-extrabold tracking-tight text-white">
+            <div
+              className={`font-mono-num mt-0.5 text-xl font-extrabold tracking-tight ${
+                unit.isEstimatedValue ? "text-amber-200" : "text-white"
+              }`}
+            >
               {unit.valueDisplay}
             </div>
+            {unit.estimatedValueRange && (
+              <span className="font-mono-num block text-[10px] font-semibold text-violet-300/90">
+                Диапазон: {unit.estimatedValueRange}
+              </span>
+            )}
           </div>
           <div className="text-right">
             <span className="block text-[10px] font-semibold tracking-wider text-slate-500 uppercase">

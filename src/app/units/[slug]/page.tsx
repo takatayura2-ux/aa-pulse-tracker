@@ -12,7 +12,12 @@ import {
   Wind,
 } from "lucide-react";
 import { GeminiAnalysisPanel } from "@/components/GeminiAnalysisPanel";
-import { ShinyBadge, TierBadge, TrendBadge } from "@/components/UnitBadges";
+import {
+  EstimatedValueBadge,
+  ShinyBadge,
+  TierBadge,
+  TrendBadge,
+} from "@/components/UnitBadges";
 import { UnitCard } from "@/components/UnitCard";
 import { UnitDetailActions } from "@/components/UnitDetailActions";
 import { UnitPriceChart } from "@/components/UnitPriceChart";
@@ -89,6 +94,9 @@ export default async function UnitDetailPage({
             <div className="flex flex-wrap items-center gap-2">
               <TierBadge tier={unit.tier} subTier={unit.subTier} />
               {unit.isShiny && <ShinyBadge />}
+              {(unit.isUntradable || unit.isEstimatedValue) && (
+                <EstimatedValueBadge isUntradable={unit.isUntradable} />
+              )}
               <TrendBadge trend={unit.trend} />
             </div>
 
@@ -119,16 +127,30 @@ export default async function UnitDetailPage({
         <div className="relative mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <div className="rounded-2xl border border-slate-800 bg-[#070b14]/90 p-4">
             <div className="flex items-center justify-between text-[11px] font-semibold tracking-wider text-slate-400 uppercase">
-              <span>Текущее Value</span>
+              <span>
+                {unit.isUntradable
+                  ? "Примерная цена (Прогноз)"
+                  : unit.isEstimatedValue
+                    ? "Рынок (Ориентир)"
+                    : "Текущее Value"}
+              </span>
               <Coins className="h-4 w-4 text-cyan-400" />
             </div>
-            <div className="font-mono-num mt-2 text-2xl font-extrabold text-white">
+            <div
+              className={`font-mono-num mt-2 text-2xl font-extrabold ${
+                unit.isEstimatedValue ? "text-amber-200" : "text-white"
+              }`}
+            >
               {unit.valueDisplay}
             </div>
             <p className="mt-1 text-xs text-slate-500">
-              {unit.value === null
-                ? "Коллекционная договорная цена"
-                : "Оценка по прайс-листу"}
+              {unit.isUntradable
+                ? `Не передаётся · диапазон ${unit.estimatedValueRange ?? "оценка"} Val`
+                : unit.value === null
+                  ? unit.estimatedValueRange
+                    ? `Договорная (OC): ${unit.estimatedValueRange}`
+                    : "Коллекционная договорная цена"
+                  : "Оценка по прайс-листу"}
             </p>
           </div>
 
@@ -245,6 +267,22 @@ export default async function UnitDetailPage({
           </div>
         )}
       </section>
+
+      {/* Estimated Price Disclaimer for Untradable / N/A Collector Units */}
+      {(unit.isUntradable || unit.estimatedNote) && (
+        <div className="flex items-start gap-3 rounded-2xl border border-violet-500/35 bg-violet-500/10 px-4 py-3.5 text-xs leading-relaxed text-violet-100">
+          <Info className="mt-0.5 h-4 w-4 shrink-0 text-violet-300" />
+          <div>
+            <strong className="text-amber-200">
+              {unit.isUntradable
+                ? `Ориентировочная цена до открытия трейда (~${unit.valueDisplay} Value${unit.estimatedValueRange ? `, диапазон ${unit.estimatedValueRange}` : ""}):`
+                : `Коллекционный ориентир (${unit.estimatedValueRange ?? "договорная"}):`}
+            </strong>{" "}
+            {unit.estimatedNote ??
+              "Оценка рассчитана по ближайшим секретным и мифическим аналогам того же тира и спроса из таблицы стоимости."}
+          </div>
+        </div>
+      )}
 
       {/* Recharts Price History */}
       <UnitPriceChart

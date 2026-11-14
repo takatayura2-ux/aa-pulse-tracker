@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import { evaluateTrade, MAX_TRADE_SLOTS } from "@/lib/trade-utils";
 import { formatValue, getDemandInfo } from "@/lib/unit-formatting";
-import { ShinyBadge, TierBadge } from "@/components/UnitBadges";
+import { EstimatedValueBadge, ShinyBadge, TierBadge } from "@/components/UnitBadges";
 import { useTrade, type TradeSide } from "@/components/TradeProvider";
 import type { Tier, Unit } from "@/types/unit";
 
@@ -42,6 +42,7 @@ export function TradeCalculator({ units }: { units: Unit[] }) {
   const [pickerSearch, setPickerSearch] = useState("");
   const [pickerTier, setPickerTier] = useState<"ALL" | Tier>("ALL");
   const [pickerShinyOnly, setPickerShinyOnly] = useState(false);
+  const [pickerIncludeUntradable, setPickerIncludeUntradable] = useState(true);
 
   const offerUnits = useMemo(
     () => offerSlots.filter((u): u is Unit => u !== null),
@@ -60,15 +61,16 @@ export function TradeCalculator({ units }: { units: Unit[] }) {
   const pickerFiltered = useMemo(() => {
     const q = pickerSearch.trim().toLowerCase();
     return units.filter((u) => {
+      if (!pickerIncludeUntradable && u.isUntradable) return false;
       if (pickerTier !== "ALL" && u.tier !== pickerTier) return false;
       if (pickerShinyOnly && !u.isShiny) return false;
       if (q) {
-        const hay = `${u.name} ${u.gameName} ${u.animeName} ${u.subTier}`.toLowerCase();
+        const hay = `${u.name} ${u.gameName} ${u.animeName} ${u.subTier} ${(u.searchAliases ?? []).join(" ")}`.toLowerCase();
         if (!hay.includes(q)) return false;
       }
       return true;
     });
-  }, [units, pickerSearch, pickerTier, pickerShinyOnly]);
+  }, [units, pickerSearch, pickerTier, pickerShinyOnly, pickerIncludeUntradable]);
 
   const totalCombined =
     evaluation.offer.totalValue + evaluation.request.totalValue;
@@ -337,7 +339,7 @@ export function TradeCalculator({ units }: { units: Unit[] }) {
                   autoFocus
                   value={pickerSearch}
                   onChange={(e) => setPickerSearch(e.target.value)}
-                  placeholder="Поиск по имени, аниме или тиру..."
+                  placeholder="Поиск по имени, Рукия / Rukia, Vegito, тиру..."
                   className="w-full rounded-xl border border-slate-700 bg-[#050811] py-2.5 pr-4 pl-10 text-sm text-white placeholder-slate-500 outline-none focus:border-cyan-400"
                 />
               </div>
@@ -358,18 +360,31 @@ export function TradeCalculator({ units }: { units: Unit[] }) {
                     </button>
                   ))}
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setPickerShinyOnly((v) => !v)}
-                  className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-bold transition ${
-                    pickerShinyOnly
-                      ? "border-amber-400/60 bg-amber-500/20 text-amber-200"
-                      : "border-slate-800 bg-slate-900 text-slate-400 hover:text-white"
-                  }`}
-                >
-                  <Sparkles className="h-3.5 w-3.5 text-amber-300" />
-                  <span>Только Shiny</span>
-                </button>
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setPickerIncludeUntradable((v) => !v)}
+                    className={`rounded-lg border px-2.5 py-1 text-xs font-bold transition ${
+                      pickerIncludeUntradable
+                        ? "border-violet-400/60 bg-violet-500/20 text-violet-200"
+                        : "border-slate-800 bg-slate-900 text-slate-400 hover:text-white"
+                    }`}
+                  >
+                    Без трейда (~цена)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPickerShinyOnly((v) => !v)}
+                    className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-bold transition ${
+                      pickerShinyOnly
+                        ? "border-amber-400/60 bg-amber-500/20 text-amber-200"
+                        : "border-slate-800 bg-slate-900 text-slate-400 hover:text-white"
+                    }`}
+                  >
+                    <Sparkles className="h-3.5 w-3.5 text-amber-300" />
+                    <span>Только Shiny</span>
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -391,6 +406,12 @@ export function TradeCalculator({ units }: { units: Unit[] }) {
                         <div className="flex flex-wrap items-center gap-1.5">
                           <TierBadge tier={unit.tier} subTier={unit.subTier} />
                           {unit.isShiny && <ShinyBadge compact />}
+                          {(unit.isUntradable || unit.isEstimatedValue) && (
+                            <EstimatedValueBadge
+                              isUntradable={unit.isUntradable}
+                              compact
+                            />
+                          )}
                         </div>
                         <div className="mt-1.5 truncate text-sm font-bold text-white">
                           {unit.gameName}
@@ -402,7 +423,13 @@ export function TradeCalculator({ units }: { units: Unit[] }) {
                         </div>
                       </div>
                       <div className="shrink-0 text-right">
-                        <div className="font-mono-num text-sm font-extrabold text-cyan-300">
+                        <div
+                          className={`font-mono-num text-sm font-extrabold ${
+                            unit.isEstimatedValue
+                              ? "text-amber-200"
+                              : "text-cyan-300"
+                          }`}
+                        >
                           {unit.valueDisplay}
                         </div>
                         <div className="font-mono-num text-[11px] text-slate-400">
@@ -568,10 +595,19 @@ function TradeSidePanel({
                     ✦ SHINY
                   </span>
                 )}
+                {unit.isUntradable && (
+                  <span className="mt-0.5 block text-[10px] font-semibold text-violet-300">
+                    Прогноз (без трейда)
+                  </span>
+                )}
               </button>
 
               <div className="flex items-center justify-between border-t border-slate-800/90 pt-1.5 text-[11px]">
-                <span className="font-mono-num font-bold text-cyan-300">
+                <span
+                  className={`font-mono-num font-bold ${
+                    unit.isEstimatedValue ? "text-amber-200" : "text-cyan-300"
+                  }`}
+                >
                   {unit.valueDisplay}
                 </span>
                 <span className="font-mono-num text-slate-400">
