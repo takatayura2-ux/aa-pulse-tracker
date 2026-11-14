@@ -16,6 +16,7 @@ import {
   Plus,
   X,
   Database,
+  Swords,
 } from "lucide-react";
 import {
   formatRerolls,
@@ -24,9 +25,12 @@ import {
 import { ShinyBadge, TierBadge, TrendBadge } from "@/components/UnitBadges";
 import { UnitCard } from "@/components/UnitCard";
 import { useTrade } from "@/components/TradeProvider";
+import { CompactDpsLadder } from "@/components/CompactDpsLadder";
+import { DpsTierListFullView } from "@/components/DpsTierListFullView";
+import { ALL_DPS_PROFILES } from "@/data/dpsTierList";
 import type { MarketSnapshot, Tier, Unit } from "@/types/unit";
 
-type TrackerTab = "all" | "rising" | "dropping" | "new";
+type TrackerTab = "all" | "rising" | "dropping" | "new" | "dps_top";
 type DemandFilter = "all" | "very_high" | "high" | "average_plus" | "low";
 type SortOption =
   | "rank"
@@ -368,40 +372,63 @@ export function UnitTrackerDashboard({
               {newUnitsCount}
             </span>
           </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab("dps_top")}
+            className={`inline-flex items-center gap-2 rounded-xl border px-3.5 py-2 text-sm font-semibold transition ${
+              activeTab === "dps_top"
+                ? "border-amber-400/60 bg-gradient-to-r from-amber-500/20 to-fuchsia-500/15 text-amber-100 shadow-[0_0_20px_rgba(245,158,11,0.16)]"
+                : "border-slate-800 bg-[#0c111d] text-slate-300 hover:border-amber-500/35 hover:text-amber-200"
+            }`}
+          >
+            <Swords className="h-4 w-4 text-amber-400" />
+            <span>Unique DPS Топ</span>
+            <span className="font-mono-num rounded-md bg-slate-800 px-1.5 py-0.5 text-xs text-amber-200">
+              {ALL_DPS_PROFILES.length}
+            </span>
+          </button>
         </div>
 
         {/* View Mode Switcher */}
-        <div className="flex items-center gap-2 self-start lg:self-auto">
-          <div className="inline-flex rounded-xl border border-slate-800 bg-[#0c111d] p-1">
-            <button
-              type="button"
-              onClick={() => setViewMode("grid")}
-              className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
-                viewMode === "grid"
-                  ? "bg-slate-800 text-white"
-                  : "text-slate-400 hover:text-white"
-              }`}
-            >
-              <LayoutGrid className="h-3.5 w-3.5" />
-              <span>Карточки</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setViewMode("table")}
-              className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
-                viewMode === "table"
-                  ? "bg-slate-800 text-white"
-                  : "text-slate-400 hover:text-white"
-              }`}
-            >
-              <Table2 className="h-3.5 w-3.5" />
-              <span>Таблица</span>
-            </button>
+        {activeTab !== "dps_top" && (
+          <div className="flex items-center gap-2 self-start lg:self-auto">
+            <div className="inline-flex rounded-xl border border-slate-800 bg-[#0c111d] p-1">
+              <button
+                type="button"
+                onClick={() => setViewMode("grid")}
+                className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
+                  viewMode === "grid"
+                    ? "bg-slate-800 text-white"
+                    : "text-slate-400 hover:text-white"
+                }`}
+              >
+                <LayoutGrid className="h-3.5 w-3.5" />
+                <span>Карточки</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode("table")}
+                className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
+                  viewMode === "table"
+                    ? "bg-slate-800 text-white"
+                    : "text-slate-400 hover:text-white"
+                }`}
+              >
+                <Table2 className="h-3.5 w-3.5" />
+                <span>Таблица</span>
+              </button>
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
-      {/* Sub-banner for Rising / Dropping clarity */}
+      {activeTab === "dps_top" ? (
+        <DpsTierListFullView />
+      ) : (
+        <div className="flex flex-col gap-6 xl:flex-row xl:items-start">
+          <div className="min-w-0 flex-1 space-y-6">
+            {/* Sub-banner for Rising / Dropping clarity */}
       {activeTab === "rising" && (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-emerald-500/25 bg-emerald-500/8 px-4 py-3 text-xs text-emerald-100">
           <p>
@@ -592,7 +619,7 @@ export function UnitTrackerDashboard({
           </button>
         </div>
       ) : viewMode === "grid" ? (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {filteredUnits.map((unit) => (
             <UnitCard key={unit.slug} unit={unit} />
           ))}
@@ -693,6 +720,11 @@ export function UnitTrackerDashboard({
               </tbody>
             </table>
           </div>
+        </div>
+      )}
+          </div>
+
+          <CompactDpsLadder onOpenFullCategory={() => setActiveTab("dps_top")} />
         </div>
       )}
     </div>

@@ -74,6 +74,16 @@ export interface PriceHistoryPoint {
 
 export type AnalysisVerdict = "BUY" | "HOLD" | "SELL" | "CAUTION";
 
+export interface DpsAnalysisBreakdown {
+  combatRank: string;
+  uniqueEfficiency: string;
+  dpsToValueVerdict: string;
+  uniqueDpsLv100?: number;
+  divineFullCapDpsLv100?: number;
+  placementCap?: number;
+  bestUniqueRank?: number;
+}
+
 export interface AiUnitAnalysis {
   whyThisPrice: string;
   currentMeta: string;
@@ -82,6 +92,7 @@ export interface AiUnitAnalysis {
   verdictLabel: string;
   confidence: number;
   keyDrivers: string[];
+  dpsAnalysis?: DpsAnalysisBreakdown;
   source: "gemini" | "heuristic";
   model?: string;
   generatedAt: string;

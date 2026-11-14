@@ -9,7 +9,11 @@ import {
   Layers,
   Cpu,
   AlertCircle,
+  Swords,
+  Zap,
+  Scale,
 } from "lucide-react";
+import { formatDpsNumber } from "@/data/dpsTierList";
 import type { AiUnitAnalysis, AnalysisVerdict, Unit } from "@/types/unit";
 
 function getVerdictStyle(verdict: AnalysisVerdict) {
@@ -260,6 +264,58 @@ export function GeminiAnalysisPanel({ unit }: { unit: Unit }) {
               </p>
             </div>
           </div>
+
+          {/* Combat DPS & Unique Cap Breakdown */}
+          {analysis.dpsAnalysis && (
+            <div className="rounded-2xl border border-cyan-500/25 bg-[#070b14]/90 p-4">
+              <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2 text-xs font-bold tracking-wider text-cyan-300 uppercase">
+                  <Swords className="h-4 w-4" />
+                  <span>Боевой DPS-разбор (Update 21)</span>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2 text-xs">
+                  <span className="rounded-lg border border-cyan-500/35 bg-cyan-500/12 px-2.5 py-0.5 font-bold text-cyan-200">
+                    {analysis.dpsAnalysis.combatRank}
+                  </span>
+                  {typeof analysis.dpsAnalysis.uniqueDpsLv100 === "number" && (
+                    <span className="font-mono-num rounded-lg border border-amber-500/35 bg-amber-500/12 px-2.5 py-0.5 font-bold text-amber-200">
+                      Unique: {formatDpsNumber(analysis.dpsAnalysis.uniqueDpsLv100)} DPS
+                    </span>
+                  )}
+                  {typeof analysis.dpsAnalysis.divineFullCapDpsLv100 === "number" &&
+                    typeof analysis.dpsAnalysis.placementCap === "number" && (
+                      <span className="font-mono-num rounded-lg border border-slate-700 bg-slate-900 px-2.5 py-0.5 font-semibold text-slate-300">
+                        {analysis.dpsAnalysis.placementCap}× Divine:{" "}
+                        {formatDpsNumber(analysis.dpsAnalysis.divineFullCapDpsLv100)}
+                      </span>
+                    )}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                <div className="rounded-xl border border-slate-800/80 bg-[#0b101b] p-3">
+                  <div className="mb-1 flex items-center gap-1.5 text-[11px] font-bold tracking-wider text-amber-300 uppercase">
+                    <Zap className="h-3.5 w-3.5" />
+                    <span>Эффективность Unique и Placement Cap</span>
+                  </div>
+                  <p className="text-xs leading-relaxed text-slate-300">
+                    {analysis.dpsAnalysis.uniqueEfficiency}
+                  </p>
+                </div>
+
+                <div className="rounded-xl border border-slate-800/80 bg-[#0b101b] p-3">
+                  <div className="mb-1 flex items-center gap-1.5 text-[11px] font-bold tracking-wider text-emerald-300 uppercase">
+                    <Scale className="h-3.5 w-3.5" />
+                    <span>Окупаемость DPS к цене (Value)</span>
+                  </div>
+                  <p className="text-xs leading-relaxed text-slate-300">
+                    {analysis.dpsAnalysis.dpsToValueVerdict}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       ) : null}
     </section>

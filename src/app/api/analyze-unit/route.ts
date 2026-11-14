@@ -1,4 +1,9 @@
 import { NextResponse } from "next/server";
+import {
+  ALL_DPS_PROFILES,
+  findUnitDpsProfile,
+  toSyntheticUnitFromDpsProfile,
+} from "@/data/dpsTierList";
 import { analyzeUnitWithGemini } from "@/lib/ai-analyzer";
 import { getUnitBySlug } from "@/lib/data-repository";
 import { isGeminiConfigured } from "@/lib/env";
@@ -20,6 +25,16 @@ export async function POST(request: Request) {
     if (body.slug) {
       const { unit } = await getUnitBySlug(body.slug);
       targetUnit = unit;
+      if (!targetUnit) {
+        const dpsMatch = ALL_DPS_PROFILES.find(
+          (entry) =>
+            entry.unitSlug === body.slug ||
+            `dps-${entry.rankCode.toLowerCase()}` === body.slug
+        );
+        if (dpsMatch) {
+          targetUnit = toSyntheticUnitFromDpsProfile(dpsMatch);
+        }
+      }
     }
 
     if (!targetUnit && body.unit && body.unit.name) {
@@ -33,6 +48,7 @@ export async function POST(request: Request) {
       );
     }
 
+    const dpsProfile = findUnitDpsProfile(targetUnit);
     const analysis = await analyzeUnitWithGemini(targetUnit, {
       forceRefresh: Boolean(body.forceRefresh),
     });
@@ -40,6 +56,7 @@ export async function POST(request: Request) {
     return NextResponse.json({
       unitSlug: targetUnit.slug,
       geminiConfigured: isGeminiConfigured(),
+      dpsProfile,
       analysis,
     });
   } catch (err) {

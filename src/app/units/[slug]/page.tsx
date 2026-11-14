@@ -8,12 +8,20 @@ import {
   TrendingUp,
   Coins,
   Repeat,
+  Swords,
+  Wind,
 } from "lucide-react";
 import { GeminiAnalysisPanel } from "@/components/GeminiAnalysisPanel";
 import { ShinyBadge, TierBadge, TrendBadge } from "@/components/UnitBadges";
 import { UnitCard } from "@/components/UnitCard";
 import { UnitDetailActions } from "@/components/UnitDetailActions";
 import { UnitPriceChart } from "@/components/UnitPriceChart";
+import {
+  findUnitDpsProfile,
+  formatDpsNumber,
+  getBestUniqueRank,
+  getUniquePlacementMath,
+} from "@/data/dpsTierList";
 import { getUnitBySlug } from "@/lib/data-repository";
 import { buildUnitPriceHistory } from "@/lib/price-history";
 import { fetchUnitHistoryFromSupabase } from "@/lib/supabase";
@@ -41,6 +49,9 @@ export default async function UnitDetailPage({
   const priceHistory = buildUnitPriceHistory(unit, supabaseHistory, 90);
   const demandInfo = getDemandInfo(unit.demand);
   const trendMeta = getTrendMeta(unit.trend);
+  const dpsProfile = findUnitDpsProfile(unit);
+  const placementMath = dpsProfile ? getUniquePlacementMath(dpsProfile.cap) : null;
+  const bestUniqueRank = dpsProfile ? getBestUniqueRank(dpsProfile) : null;
 
   // Closest units in the same tier for quick comparison
   const relatedUnits = snapshot.units
@@ -174,6 +185,65 @@ export default async function UnitDetailPage({
             </p>
           </div>
         </div>
+
+        {/* Combat DPS Strip when unit is in Update 21 DPS database */}
+        {dpsProfile && placementMath && (
+          <div className="relative mt-4 rounded-2xl border border-amber-500/25 bg-[#070b14]/90 p-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex flex-wrap items-center gap-2 text-xs">
+                <span className="inline-flex items-center gap-1.5 font-bold text-amber-300">
+                  <Swords className="h-4 w-4" />
+                  Профиль DPS (Update 21):
+                </span>
+                <span className="rounded-md border border-cyan-500/35 bg-cyan-500/15 px-2 py-0.5 font-extrabold text-cyan-200">
+                  {dpsProfile.rankCode} · {dpsProfile.tier} Tier · #{bestUniqueRank} по Unique DPS
+                </span>
+                {dpsProfile.hitsAir && (
+                  <span className="inline-flex items-center gap-1 rounded-md border border-sky-500/35 bg-sky-500/15 px-2 py-0.5 font-semibold text-sky-200">
+                    <Wind className="h-3 w-3" />
+                    Бьёт воздух (Hybrid/Air)
+                  </span>
+                )}
+              </div>
+
+              <div className="flex flex-wrap items-center gap-4 text-xs">
+                <div>
+                  <span className="text-slate-400">Unique DPS (Lv100): </span>
+                  <strong className="font-mono-num text-amber-300">
+                    {formatDpsNumber(dpsProfile.uniqueDpsLv100)}
+                  </strong>
+                </div>
+                <div>
+                  <span className="text-slate-400">
+                    {dpsProfile.cap}× Divine:{" "}
+                  </span>
+                  <strong className="font-mono-num text-slate-200">
+                    {formatDpsNumber(dpsProfile.divineFullCapDpsLv100)}
+                  </strong>
+                </div>
+                <div>
+                  <span className="text-slate-400">SPA / Range: </span>
+                  <strong className="font-mono-num text-white">
+                    {dpsProfile.spa}s / {dpsProfile.range}
+                  </strong>
+                </div>
+                <div>
+                  <span className="text-slate-400">Cap: </span>
+                  <strong className="font-mono-num text-white">
+                    {dpsProfile.cap}
+                  </strong>
+                </div>
+              </div>
+            </div>
+
+            <p className="mt-2 text-xs leading-relaxed text-slate-300">
+              <span className="font-semibold text-cyan-300">
+                {placementMath.headline}:
+              </span>{" "}
+              {dpsProfile.passiveSummary}
+            </p>
+          </div>
+        )}
       </section>
 
       {/* Recharts Price History */}
